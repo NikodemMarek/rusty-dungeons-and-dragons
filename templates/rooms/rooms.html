@@ -1,0 +1,12 @@
+<h1>rooms</h1>
+
+<ul class="rooms">
+{% for room in rooms %}
+    {{ room|safe }}
+{% endfor %}
+</ul>
+
+<form hx-post="/c/rooms" hx-target="ul.rooms" hx-swap="beforeend">
+    <input name="name" placeholder="room name" />
+    <button type="submit">create room</button>
+</form>
