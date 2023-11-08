@@ -1,0 +1,5 @@
+<h1>welcome to room {{ name }}</h1>
+
+{% for message in messages %}
+    {{ message|safe }}
+{% endfor %}

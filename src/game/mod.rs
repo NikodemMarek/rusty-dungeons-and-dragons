@@ -8,6 +8,11 @@ use async_openai::{
 };
 use eyre::Result;
 
+#[derive(Debug, Clone)]
+pub struct Message {
+    pub content: String,
+}
+
 #[derive(Debug)]
 struct ContextMessage {
     role: Role,
@@ -39,6 +44,7 @@ impl TryFrom<ChatCompletionResponseMessage> for ContextMessage {
 pub struct Game {
     client: Client<OpenAIConfig>,
     context: Vec<ContextMessage>,
+    messages: Vec<Message>,
 }
 impl Game {
     pub fn new() -> Self {
@@ -47,12 +53,20 @@ impl Game {
             role: Role::System,
             content: String::from("You are a dnd game master"),
         }]);
+        let messages = Vec::new();
 
-        Self { client, context }
+        Self {
+            client,
+            context,
+            messages,
+        }
     }
 
     fn push(&mut self, msg: ContextMessage) {
-        self.context.push(msg)
+        self.context.push(msg);
+        self.messages.push(Message {
+            content: self.context.last().unwrap().content.to_owned(),
+        });
     }
 
     pub async fn next(&mut self) -> Result<()> {
@@ -93,7 +107,7 @@ impl Game {
         Ok(())
     }
 
-    pub fn messages(&self) -> Vec<String> {
-        self.context.iter().map(|m| m.content.to_owned()).collect()
+    pub fn messages<'a>(&'a self) -> &'a [Message] {
+        &self.messages
     }
 }

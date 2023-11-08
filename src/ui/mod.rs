@@ -6,6 +6,7 @@ use axum::{
 };
 
 mod lobby;
+mod room;
 
 use crate::types::MutState;
 
@@ -30,7 +31,7 @@ pub fn page(title: &str, content: &str) -> Html<String> {
 pub fn pages_router() -> Router<MutState> {
     Router::new()
         .route("/", get(index()))
-        .route("/room/:room_id", get(lobby::room))
+        .route("/room/:room_id", get(room::room))
 }
 
 fn index() -> Html<String> {
