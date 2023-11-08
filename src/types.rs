@@ -1,16 +1,26 @@
 use axum::extract::ws::WebSocket;
 use std::collections::HashMap;
 
+use crate::game::Game;
+
+#[derive(Debug)]
+pub struct Client {
+    pub name: String,
+    socket: WebSocket,
+}
+
 #[derive(Debug)]
 pub struct Room {
     pub name: String,
-    pub clients: Vec<WebSocket>,
+    pub clients: Vec<Client>,
+    pub game: Game,
 }
 impl Room {
     pub fn new(name: String) -> Self {
         Self {
             name,
             clients: Vec::new(),
+            game: Game::new(),
         }
     }
 }
@@ -35,4 +45,4 @@ impl AppState {
     }
 }
 
-pub type MutState = std::sync::Arc<std::sync::Mutex<AppState>>;
+pub type MutState = std::sync::Arc<tokio::sync::Mutex<AppState>>;

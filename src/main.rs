@@ -3,6 +3,7 @@ use std::{net::SocketAddr, path::PathBuf};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod game;
 mod types;
 mod ui;
 mod websocket;
@@ -12,6 +13,9 @@ use websocket::ws_handler;
 
 #[tokio::main]
 async fn main() {
+    dotenv::dotenv().ok();
+    std::env::var("OPENAI_API_KEY").expect("OPENAI_API_KEY not set");
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
@@ -22,9 +26,8 @@ async fn main() {
 
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
-    let state = std::sync::Arc::new(std::sync::Mutex::new(AppState::new()));
-    state.lock().unwrap().add_room("test".to_string());
-    state.lock().unwrap().add_room("test2".to_string());
+    let state = std::sync::Arc::new(tokio::sync::Mutex::new(AppState::new()));
+    state.lock().await.add_room("test".to_string());
 
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
