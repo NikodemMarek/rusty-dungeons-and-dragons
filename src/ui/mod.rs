@@ -16,7 +16,7 @@ pub fn render_or_else<T: Template>(template: T, err: &str) -> String {
 }
 
 #[derive(Template)]
-#[template(path = "../templates/page.html")]
+#[template(path = "page.html")]
 pub struct Page<'a> {
     title: &'a str,
     content: &'a str,
@@ -32,6 +32,7 @@ pub fn pages_router() -> Router<MutState> {
     Router::new()
         .route("/", get(index()))
         .route("/room/:room_id", get(room::room))
+        .route("/room/:room_id/join", get(room::join_room))
 }
 
 fn index() -> Html<String> {

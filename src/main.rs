@@ -6,10 +6,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 mod game;
 mod types;
 mod ui;
-mod websocket;
 
 use types::AppState;
-use websocket::ws_handler;
 
 #[tokio::main]
 async fn main() {
@@ -33,7 +31,6 @@ async fn main() {
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))
         .nest("", ui::pages_router())
         .nest("/c", ui::components_router())
-        .route("/ws", get(ws_handler))
         .with_state(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

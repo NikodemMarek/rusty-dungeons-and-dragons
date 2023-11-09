@@ -127,6 +127,12 @@ impl Game {
         }
     }
 
+    pub fn add_player(&mut self, name: String) -> usize {
+        let id = self.players.len();
+        self.players.insert(id, Player { name });
+        id
+    }
+
     fn push_msg(&mut self, msg: Message) {
         self.messages.push(msg);
     }
