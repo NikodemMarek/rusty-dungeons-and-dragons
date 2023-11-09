@@ -39,8 +39,8 @@ impl AppState {
     }
 
     pub fn add_room(&mut self, name: String) -> usize {
-        self.id += 1;
         self.rooms.insert(self.id, Room::new(name));
+        self.id += 1;
         self.id
     }
 }
