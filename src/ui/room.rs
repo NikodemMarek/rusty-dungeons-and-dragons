@@ -18,9 +18,9 @@ struct Page<'a> {
 pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> Html<String> {
     match &mut state.lock().await.rooms.get_mut(&room_id) {
         Some(room) => page("RDND - room", {
-            if let Err(e) = room.game.next().await {
-                println!("{e}");
-            }
+            // if let Err(e) = room.game.next().await {
+            //     println!("{e}");
+            // }
 
             &render_or_else(
                 Page {
@@ -46,8 +46,13 @@ struct Message<'a> {
 }
 impl<'a> From<&'a crate::game::Message> for Message<'a> {
     fn from(msg: &'a crate::game::Message) -> Self {
-        Self {
-            content: &msg.content,
+        match msg {
+            crate::game::Message::Master(m) => Self {
+                content: &m.content,
+            },
+            crate::game::Message::Player(m) => Self {
+                content: &m.content,
+            },
         }
     }
 }
