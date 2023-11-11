@@ -25,7 +25,7 @@ async fn main() {
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
     let state = std::sync::Arc::new(tokio::sync::Mutex::new(AppState::new()));
-    state.lock().await.add_room("test".to_string());
+    state.lock().await.add_room("test");
 
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))

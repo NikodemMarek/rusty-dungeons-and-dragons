@@ -44,7 +44,7 @@ pub struct NewRoom {
 pub async fn post_rooms(State(state): State<MutState>, Form(new_room): Form<NewRoom>) -> String {
     let rs = &mut state.lock().await;
 
-    let room_id = rs.add_room(new_room.name);
+    let room_id = rs.add_room(&new_room.name);
     match rs.rooms.get(&room_id) {
         Some(room) => render_or_else(
             Room {
