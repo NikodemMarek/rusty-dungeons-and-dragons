@@ -1,7 +1,7 @@
 use askama::Template;
 use axum::extract::{Form, State};
 
-use crate::types::MutState;
+use crate::server::MutState;
 
 use super::render_or_else;
 

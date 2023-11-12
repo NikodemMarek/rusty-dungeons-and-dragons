@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::game::Game;
@@ -44,25 +44,3 @@ impl Drop for Room {
         self.recv_task.abort();
     }
 }
-
-#[derive(Debug)]
-pub struct AppState {
-    pub rooms: HashMap<usize, Arc<Room>>,
-    id: usize,
-}
-impl AppState {
-    pub fn new() -> Self {
-        Self {
-            rooms: HashMap::new(),
-            id: 0,
-        }
-    }
-
-    pub fn add_room(&mut self, name: &str) -> usize {
-        self.rooms.insert(self.id, Arc::new(Room::new(name)));
-        self.id += 1;
-        self.id - 1
-    }
-}
-
-pub type MutState = std::sync::Arc<tokio::sync::Mutex<AppState>>;

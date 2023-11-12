@@ -4,10 +4,10 @@ use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod game;
-mod types;
+mod server;
 mod ui;
 
-use types::AppState;
+use crate::server::AppState;
 
 #[tokio::main]
 async fn main() {

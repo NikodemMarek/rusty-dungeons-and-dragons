@@ -8,7 +8,7 @@ use axum::{
 mod lobby;
 mod room;
 
-use crate::types::MutState;
+use crate::server::MutState;
 
 /// Render a template or return an error message
 pub fn render_or_else<T: Template>(template: T, err: &str) -> String {

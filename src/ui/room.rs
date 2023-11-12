@@ -7,7 +7,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 
-use crate::types::{self, MutState};
+use crate::server::{self, MutState};
 use crate::ui::page;
 
 use super::render_or_else;
@@ -73,7 +73,11 @@ pub async fn join_room(
     }
 }
 
-async fn handle_socket(socket: ws::WebSocket, room: std::sync::Arc<types::Room>, agent: String) {
+async fn handle_socket(
+    socket: ws::WebSocket,
+    room: std::sync::Arc<server::room::Room>,
+    agent: String,
+) {
     use futures_util::{SinkExt, StreamExt};
     let (mut sender, mut reciever) = socket.split();
 
