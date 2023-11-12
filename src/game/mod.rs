@@ -1,45 +1,18 @@
 use async_openai::{
     config::OpenAIConfig,
-    types::{
-        ChatCompletionRequestMessage, ChatCompletionResponseMessage,
-        CreateChatCompletionRequestArgs, Role,
-    },
+    types::{ChatCompletionRequestMessage, CreateChatCompletionRequestArgs, Role},
     Client,
 };
 use eyre::Result;
 use std::collections::HashMap;
 
+pub mod message;
+
+use message::Message;
+
 #[derive(Debug)]
 pub struct Player {
     name: String,
-}
-
-#[derive(Debug)]
-pub enum Message {
-    Master(MasterMessage),
-    Player(PlayerMessage),
-}
-
-#[derive(Debug)]
-pub struct MasterMessage {
-    pub content: String,
-}
-impl TryFrom<ChatCompletionResponseMessage> for MasterMessage {
-    type Error = eyre::Error;
-    fn try_from(value: ChatCompletionResponseMessage) -> Result<Self> {
-        Ok(Self {
-            content: value
-                .content
-                .ok_or_else(|| eyre::eyre!("No content"))?
-                .to_owned(),
-        })
-    }
-}
-
-#[derive(Debug)]
-pub struct PlayerMessage {
-    player: usize,
-    pub content: String,
 }
 
 #[derive(Debug)]
@@ -133,12 +106,12 @@ impl Game {
         id
     }
 
-    fn push_msg(&mut self, msg: Message) {
+    pub fn push_msg(&mut self, msg: Message) {
         self.messages.push(msg);
     }
-    pub fn push_player_msg(&mut self, player: usize, content: String) {
-        self.push_msg(Message::Player(PlayerMessage { player, content }));
-    }
+    // pub fn push_player_msg(&mut self, player: usize, content: String) {
+    //     self.push_msg(Message::Player(PlayerMessage { player, content }));
+    // }
 
     pub async fn next(&mut self) -> Result<()> {
         let msgs: Vec<ChatCompletionRequestMessage> = (&self.context).try_into()?;
