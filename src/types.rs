@@ -16,11 +16,10 @@ impl Room {
         let game = Arc::new(Mutex::new(Game::new()));
         let (tx, mut rx) = tokio::sync::broadcast::channel::<String>(10);
 
-        let recv_game = game.clone();
         let recv_task = tokio::spawn(async move {
             while let Ok(msg) = rx.recv().await {
                 // TODO: Somehow get the sender from the message
-                let mut game = recv_game.lock().await;
+                let mut game = game.lock().await;
                 game.push_player_msg(0, msg.clone());
 
                 println!("sbd said: {msg}");
