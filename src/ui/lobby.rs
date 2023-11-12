@@ -1,8 +1,5 @@
 use askama::Template;
-use axum::{
-    extract::{Form, Path, State},
-    response::Html,
-};
+use axum::extract::{Form, State};
 
 use crate::types::MutState;
 

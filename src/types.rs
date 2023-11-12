@@ -48,7 +48,7 @@ impl Drop for Room {
 
 #[derive(Debug)]
 pub struct AppState {
-    pub rooms: HashMap<usize, Room>,
+    pub rooms: HashMap<usize, Arc<Room>>,
     id: usize,
 }
 impl AppState {
@@ -60,7 +60,7 @@ impl AppState {
     }
 
     pub fn add_room(&mut self, name: &str) -> usize {
-        self.rooms.insert(self.id, Room::new(name));
+        self.rooms.insert(self.id, Arc::new(Room::new(name)));
         self.id += 1;
         self.id
     }

@@ -7,7 +7,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 
-use crate::types::MutState;
+use crate::types::{self, MutState};
 use crate::ui::page;
 
 use super::render_or_else;
@@ -28,6 +28,8 @@ pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> 
                     name: &room.name,
                     messages: &room
                         .game
+                        .lock()
+                        .await
                         .messages()
                         .iter()
                         .map(Into::into)
@@ -48,50 +50,57 @@ pub async fn join_room(
     user_agent: Option<TypedHeader<headers::UserAgent>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
 ) -> impl IntoResponse {
-    if let Some(_) = state.lock().await.rooms.get(&room_id) {
-        ws.on_upgrade(|socket| handle_socket(socket, state))
+    if let Some(room) = state
+        .lock()
+        .await
+        .rooms
+        .get(&room_id)
+        .map(|room| room.clone())
+    {
+        let agent = format!(
+            "[{addr}] {}",
+            if let Some(TypedHeader(user_agent)) = user_agent {
+                user_agent.to_string()
+            } else {
+                String::from("Unknown browser")
+            }
+        );
+        room.add_client(&agent).await;
+
+        ws.on_upgrade(|socket| handle_socket(socket, room, agent))
     } else {
-        ws.on_upgrade(|_| async {})
-        // axum::response::Response::<axum::body::Body>::new(axum::body::Body::from("Room not found"))
+        ws.on_upgrade(|_| async { () })
     }
 }
 
-async fn handle_socket(socket: ws::WebSocket, state: MutState) {
-    if let Some(room) = state.lock().await.rooms.get(&0) {
-        use futures_util::{SinkExt, StreamExt};
-        let (mut sender, mut reciever) = socket.split();
+async fn handle_socket(socket: ws::WebSocket, room: std::sync::Arc<types::Room>, agent: String) {
+    use futures_util::{SinkExt, StreamExt};
+    let (mut sender, mut reciever) = socket.split();
 
-        println!("atnehu");
-
-        let mut rx = room.tx.subscribe();
-        let mut send_task = tokio::spawn(async move {
-            while let Ok(msg) = rx.recv().await {
-                println!("{msg}");
-                if sender.send(ws::Message::Text(msg)).await.is_err() {
-                    break;
-                }
+    let mut rx = room.tx.subscribe();
+    let mut send_task = tokio::spawn(async move {
+        while let Ok(msg) = rx.recv().await {
+            if sender.send(ws::Message::Text(msg)).await.is_err() {
+                break;
             }
-        });
+        }
+    });
 
-        println!("aaaaaa");
+    let tx = room.tx.clone();
+    let mut recv_task = tokio::spawn(async move {
+        while let Some(Ok(ws::Message::Text(text))) = reciever.next().await {
+            let _ = tx.send(format!(": {text}"));
+        }
+    });
 
-        let tx = room.tx.clone();
-        let mut recv_task = tokio::spawn(async move {
-            while let Some(Ok(ws::Message::Text(text))) = reciever.next().await {
-                println!("{text}");
-                let _ = tx.send(format!(": {text}"));
-            }
-        });
+    println!("client {agent} connected");
 
-        println!("duuuuuu");
+    tokio::select! {
+        _ = (&mut send_task) => recv_task.abort(),
+        _ = (&mut recv_task) => send_task.abort(),
+    };
 
-        tokio::select! {
-            _ = (&mut send_task) => recv_task.abort(),
-            _ = (&mut recv_task) => send_task.abort(),
-        };
-
-        println!("Websocket context destroyed");
-    }
+    println!("client {agent} disconnected");
 }
 
 #[derive(Template)]

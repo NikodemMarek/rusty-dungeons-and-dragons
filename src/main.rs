@@ -1,4 +1,4 @@
-use axum::{routing::get, Router};
+use axum::Router;
 use std::{net::SocketAddr, path::PathBuf};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};

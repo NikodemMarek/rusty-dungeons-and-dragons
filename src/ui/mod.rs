@@ -35,7 +35,7 @@ pub fn pages_router() -> Router<MutState> {
         .route("/room/:room_id/join", get(room::join_room))
 }
 
-fn index() -> Html<String> {
+pub fn index() -> Html<String> {
     page("RDND", "<div hx-get='/c/rooms' hx-trigger='load'></div>")
 }
 
