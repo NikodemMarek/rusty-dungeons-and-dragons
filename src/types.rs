@@ -62,7 +62,7 @@ impl AppState {
     pub fn add_room(&mut self, name: &str) -> usize {
         self.rooms.insert(self.id, Arc::new(Room::new(name)));
         self.id += 1;
-        self.id
+        self.id - 1
     }
 }
 
