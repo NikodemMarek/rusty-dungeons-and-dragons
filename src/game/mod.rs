@@ -35,9 +35,12 @@ impl From<Game> for Context {
             story: game
                 .messages
                 .iter()
-                .map(|m| match m {
-                    Message::Master(m) => m.content.to_owned(),
-                    Message::Player(m) => m.content.to_owned(),
+                .map(|m| {
+                    match m {
+                        Message::Master { content } => content,
+                        Message::Player { player, content } => content,
+                    }
+                    .to_owned()
                 })
                 .collect::<Vec<String>>(),
         }
@@ -109,9 +112,6 @@ impl Game {
     pub fn push_msg(&mut self, msg: Message) {
         self.messages.push(msg);
     }
-    // pub fn push_player_msg(&mut self, player: usize, content: String) {
-    //     self.push_msg(Message::Player(PlayerMessage { player, content }));
-    // }
 
     pub async fn next(&mut self) -> Result<()> {
         let msgs: Vec<ChatCompletionRequestMessage> = (&self.context).try_into()?;
@@ -129,8 +129,8 @@ impl Game {
         };
 
         response.choices.first().map(|rm| {
-            if let Ok(m) = rm.message.to_owned().try_into() {
-                self.push_msg(Message::Master(m));
+            if let Ok(msg) = rm.message.to_owned().try_into() {
+                self.push_msg(msg)
             }
         });
 

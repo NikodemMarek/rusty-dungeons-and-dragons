@@ -3,51 +3,24 @@ use eyre::Result;
 
 #[derive(Clone, Debug)]
 pub enum Message {
-    Master(MasterMessage),
-    Player(PlayerMessage),
+    Master { content: String },
+    Player { player: usize, content: String },
 }
 impl std::fmt::Display for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Message::Master(m) => write!(f, "{}", m),
-            Message::Player(m) => write!(f, "{}", m),
+            Message::Master { content } => write!(f, "master: {content}"),
+            Message::Player { player, content } => write!(f, "player {player}: {content}"),
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct MasterMessage {
-    pub content: String,
-}
-impl TryFrom<ChatCompletionResponseMessage> for MasterMessage {
+impl TryFrom<ChatCompletionResponseMessage> for Message {
     type Error = eyre::Error;
-    fn try_from(value: ChatCompletionResponseMessage) -> Result<Self> {
-        Ok(Self {
-            content: value
+    fn try_from(msg: ChatCompletionResponseMessage) -> Result<Self> {
+        Ok(Self::Master {
+            content: msg
                 .content
-                .ok_or_else(|| eyre::eyre!("No content"))?
-                .to_owned(),
+                .ok_or_else(|| eyre::eyre!("Couldn't convert message"))?,
         })
-    }
-}
-impl std::fmt::Display for MasterMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "system: {}", self.content)
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct PlayerMessage {
-    player: usize,
-    pub content: String,
-}
-impl PlayerMessage {
-    pub fn new(player: usize, content: String) -> Self {
-        Self { player, content }
-    }
-}
-impl std::fmt::Display for PlayerMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "player {}: {}", self.player, self.content)
     }
 }

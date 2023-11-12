@@ -8,10 +8,7 @@ use axum::{
 use std::net::SocketAddr;
 
 use crate::{
-    game::{
-        self,
-        message::{Message::Player, PlayerMessage},
-    },
+    game,
     server::{self, MutState},
     ui::page,
 };
@@ -103,8 +100,12 @@ async fn handle_socket(
 
     let tx = room.tx.clone();
     let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(ws::Message::Text(text))) = reciever.next().await {
-            let msg = Player(PlayerMessage::new(client_id, text));
+        while let Some(Ok(ws::Message::Text(content))) = reciever.next().await {
+            // let msg = Player(PlayerMessage::new(client_id, text));
+            let msg = game::message::Message::Player {
+                player: client_id,
+                content,
+            };
             let _ = tx.send(msg);
         }
     });
@@ -127,12 +128,8 @@ struct Message<'a> {
 impl<'a> From<&'a game::message::Message> for Message<'a> {
     fn from(msg: &'a game::message::Message) -> Self {
         match msg {
-            game::message::Message::Master(m) => Self {
-                content: &m.content,
-            },
-            game::message::Message::Player(m) => Self {
-                content: &m.content,
-            },
+            game::message::Message::Master { content } => Self { content },
+            game::message::Message::Player { player, content } => Self { content },
         }
     }
 }
