@@ -5,6 +5,7 @@ use axum::{
     response::{Html, IntoResponse},
     TypedHeader,
 };
+use eyre::Result;
 use std::net::SocketAddr;
 
 use crate::{
@@ -76,6 +77,27 @@ pub async fn join_room(
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+struct RawMessage {
+    message: String,
+}
+impl TryFrom<&str> for RawMessage {
+    type Error = eyre::Error;
+    fn try_from(msg: &str) -> Result<Self> {
+        Ok(serde_json::from_str(msg)?)
+    }
+}
+impl Into<game::message::Message> for RawMessage {
+    fn into(self) -> game::message::Message {
+        game::message::Message::Generic(self.message)
+    }
+}
+impl TryFrom<String> for game::message::Message {
+    type Error = eyre::Error;
+    fn try_from(msg: String) -> Result<Self> {
+        Ok(TryInto::<RawMessage>::try_into(msg.as_str())?.into())
+    }
+}
 async fn handle_socket(
     socket: ws::WebSocket,
     room: std::sync::Arc<server::room::Room>,
@@ -100,13 +122,10 @@ async fn handle_socket(
 
     let tx = room.tx.clone();
     let mut recv_task = tokio::spawn(async move {
-        while let Some(Ok(ws::Message::Text(content))) = reciever.next().await {
-            // let msg = Player(PlayerMessage::new(client_id, text));
-            let msg = game::message::Message::Player {
-                player: client_id,
-                content,
-            };
-            let _ = tx.send(msg);
+        while let Some(Ok(ws::Message::Text(text))) = reciever.next().await {
+            if let Ok(msg) = TryInto::<game::message::Message>::try_into(text) {
+                let _ = tx.send(msg.as_player(client_id));
+            }
         }
     });
 
@@ -128,8 +147,9 @@ struct Message<'a> {
 impl<'a> From<&'a game::message::Message> for Message<'a> {
     fn from(msg: &'a game::message::Message) -> Self {
         match msg {
+            game::message::Message::Generic(content) => Self { content },
             game::message::Message::Master { content } => Self { content },
-            game::message::Message::Player { player, content } => Self { content },
+            game::message::Message::Player { player: _, content } => Self { content },
         }
     }
 }

@@ -37,6 +37,16 @@ impl Room {
     pub async fn add_client(&self, agent: &str) -> usize {
         self.game.lock().await.add_player(agent.to_owned())
     }
+
+    pub fn broadcast(&self, msg: Message) {
+        if let Err(error) = self.tx.send(msg) {
+            println!("there was an error while broadcasting a message\n{error}\naborting and closing the connection");
+            let _ = self
+                .tx
+                .send(Message::Generic("closing due to error".to_owned())); // TODO: Send closing message
+            self.recv_task.abort();
+        }
+    }
 }
 /// Make sure the reciever task is ended when the room is dropped
 impl Drop for Room {

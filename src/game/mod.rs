@@ -37,8 +37,9 @@ impl From<Game> for Context {
                 .iter()
                 .map(|m| {
                     match m {
+                        Message::Generic(content) => content,
                         Message::Master { content } => content,
-                        Message::Player { player, content } => content,
+                        Message::Player { player: _, content } => content,
                     }
                     .to_owned()
                 })
