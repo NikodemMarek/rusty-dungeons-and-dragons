@@ -1,12 +1,9 @@
 <h1>welcome to room {{ name }}</h1>
 
 <div hx-ext="ws" ws-connect="/room/{{ id }}/join">
-    <div id="notifications"></div>
-    <div id="chat_room">
-        ...
-    </div>
-    <form id="form" ws-send>
-        <input name="chat_message">
+    <div id="messages" class="flex flex-col"></div>
+    <form ws-send>
+        <input name="message">
     </form>
 </div>
 
