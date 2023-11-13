@@ -16,18 +16,19 @@ impl Room {
         let game = Arc::new(Mutex::new(Game::new()));
         let (tx, mut rx) = tokio::sync::broadcast::channel::<Message>(10);
 
+        let recv_game = game.clone();
         let recv_task = tokio::spawn(async move {
             while let Ok(msg) = rx.recv().await {
                 println!("{msg}");
 
-                let mut game = game.lock().await;
+                let mut game = recv_game.lock().await;
                 game.push_msg(msg);
             }
         });
 
         Self {
             name: name.to_owned(),
-            game: Arc::new(Mutex::new(Game::new())),
+            game,
             tx,
             recv_task,
         }
