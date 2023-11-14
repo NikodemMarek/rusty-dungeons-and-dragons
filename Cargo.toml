@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 askama = "0.12.1"
-async-openai = "0.15.0"
+async-openai = "0.16.2"
 axum = { version = "0.6.20", features = ["ws", "headers"] }
 axum-macros = "0.3.8"
 dotenv = "0.15.0"

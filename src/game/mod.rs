@@ -1,6 +1,9 @@
 use async_openai::{
     config::OpenAIConfig,
-    types::{ChatCompletionRequestMessage, CreateChatCompletionRequestArgs, Role},
+    types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+        ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequestArgs,
+    },
     Client,
 };
 use eyre::Result;
@@ -50,27 +53,26 @@ impl From<Game> for Context {
 impl TryInto<Vec<ChatCompletionRequestMessage>> for &Context {
     type Error = eyre::Error;
     fn try_into(self) -> Result<Vec<ChatCompletionRequestMessage>> {
-        use async_openai::types::ChatCompletionRequestMessageArgs;
-
         if let (Ok(config), Ok(players), Ok(location), Ok(story)) = (
-            ChatCompletionRequestMessageArgs::default()
-                .role(Role::System)
+            ChatCompletionRequestSystemMessageArgs::default()
                 .content(self.config.clone())
                 .build(),
-            ChatCompletionRequestMessageArgs::default()
-                .role(Role::User)
+            ChatCompletionRequestUserMessageArgs::default()
                 .content(self.players.join("\n"))
                 .build(),
-            ChatCompletionRequestMessageArgs::default()
-                .role(Role::User)
+            ChatCompletionRequestUserMessageArgs::default()
                 .content(self.location.clone())
                 .build(),
-            ChatCompletionRequestMessageArgs::default()
-                .role(Role::User)
+            ChatCompletionRequestUserMessageArgs::default()
                 .content(self.story.join("\n"))
                 .build(),
         ) {
-            Ok(vec![config, players, location, story])
+            Ok(Vec::from([
+                config.into(),
+                players.into(),
+                location.into(),
+                story.into(),
+            ]))
         } else {
             Err(eyre::eyre!("Couldn't build context"))
         }
