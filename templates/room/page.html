@@ -1,5 +1,7 @@
 <h1>welcome to room {{ name }}</h1>
 
+<div hx-trigger="load" hx-get="/c/characters" hx-swap="outerHTML"></div>
+
 <div hx-ext="ws" ws-connect="/room/{{ id }}/join">
     <div id="messages" class="flex flex-col"></div>
     <form ws-send>

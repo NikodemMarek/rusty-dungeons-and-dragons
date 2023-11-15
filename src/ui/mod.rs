@@ -5,6 +5,7 @@ use axum::{
     Router,
 };
 
+mod characters;
 mod lobby;
 mod room;
 
@@ -43,4 +44,5 @@ pub fn components_router() -> Router<MutState> {
     Router::new()
         .route("/rooms", get(lobby::get_rooms))
         .route("/rooms", post(lobby::post_rooms))
+        .route("/characters", get(characters::character))
 }

@@ -1,0 +1,9 @@
+<h1>{{ name }}</h1>
+
+<p>{{ origin_story }}</p>
+
+<h2>Abilities</h2>
+
+{% for ability in abilities %}
+    {{ ability|safe }}
+{% endfor %}

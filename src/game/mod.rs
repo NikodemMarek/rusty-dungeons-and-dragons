@@ -9,6 +9,7 @@ use async_openai::{
 use eyre::Result;
 use std::collections::HashMap;
 
+pub mod character;
 pub mod message;
 
 use message::Message;
