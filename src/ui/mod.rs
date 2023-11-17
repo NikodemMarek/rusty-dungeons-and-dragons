@@ -12,7 +12,7 @@ mod room;
 use crate::server::MutState;
 
 /// Render a template or return an error message
-pub fn render_or_else<T: Template>(template: T, err: &str) -> String {
+pub fn render_or_else<T: Template>(template: &T, err: &str) -> String {
     template.render().unwrap_or_else(|_| err.to_owned())
 }
 
@@ -24,7 +24,7 @@ pub struct Page<'a> {
 }
 pub fn page(title: &str, content: &str) -> Html<String> {
     Html(render_or_else(
-        Page { title, content },
+        &Page { title, content },
         "Couldn't render page",
     ))
 }

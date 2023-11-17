@@ -27,7 +27,7 @@ pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> 
     match state.lock().await.rooms.get_mut(&room_id) {
         Some(room) => page("RDND - room", {
             &render_or_else(
-                Page {
+                &Page {
                     id: room_id,
                     name: &room.name,
                     messages: &room
@@ -111,7 +111,7 @@ async fn handle_socket(
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
             let msg = ws::Message::Text(
-                render_or_else(Message::from(&msg), "Couldn't render message").into(),
+                render_or_else(&Message::from(&msg), "Couldn't render message").into(),
             );
 
             if sender.send(msg).await.is_err() {

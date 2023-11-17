@@ -12,7 +12,7 @@ struct Rooms<'a> {
 }
 pub async fn get_rooms(State(state): State<MutState>) -> String {
     render_or_else(
-        Rooms {
+        &Rooms {
             rooms: state
                 .lock()
                 .await
@@ -44,7 +44,7 @@ pub async fn post_rooms(State(state): State<MutState>, Form(new_room): Form<NewR
     let room_id = rs.add_room(&new_room.name);
     match rs.rooms.get(&room_id) {
         Some(room) => render_or_else(
-            Room {
+            &Room {
                 name: &room.name,
                 id: &room_id,
             },

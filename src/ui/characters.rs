@@ -47,7 +47,7 @@ pub async fn character(State(state): State<MutState>) -> impl IntoResponse {
 
     super::page("RDND - character", {
         &super::render_or_else(
-            Into::<Character>::into(characters.await.unwrap().first().unwrap()),
+            &Into::<Character>::into(characters.await.unwrap().first().unwrap()),
             "Couldn't render",
         )
     })
