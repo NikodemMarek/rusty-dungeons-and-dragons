@@ -2,7 +2,7 @@ use askama::Template;
 
 use axum::{
     extract::{connect_info::ConnectInfo, ws, Path, State},
-    response::{Html, IntoResponse},
+    response::IntoResponse,
     TypedHeader,
 };
 use eyre::Result;
@@ -11,10 +11,9 @@ use std::net::SocketAddr;
 use crate::{
     game,
     server::{self, MutState},
-    ui::page,
 };
 
-use super::render_or_else;
+use super::utils::{page_or, render_or_else};
 
 #[derive(Template)]
 #[template(path = "room/page.html")]
@@ -23,27 +22,31 @@ struct Page<'a> {
     name: &'a str,
     messages: &'a [Message<'a>],
 }
-pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> Html<String> {
-    match state.lock().await.rooms.get_mut(&room_id) {
-        Some(room) => page("RDND - room", {
-            &render_or_else(
-                &Page {
-                    id: room_id,
-                    name: &room.name,
-                    messages: &room
-                        .game
-                        .lock()
-                        .await
-                        .messages()
-                        .iter()
-                        .map(Into::into)
-                        .collect::<Vec<Message>>(),
-                },
-                "Couldn't render",
-            )
-        }),
-        None => page("RDND - room", "Room not found"),
-    }
+pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> impl IntoResponse {
+    let rs = &mut state.lock().await;
+
+    page_or(
+        "RDND - room",
+        || async {
+            let room = rs.get_room(&room_id)?;
+            let content = Page {
+                id: room_id,
+                name: &room.name,
+                messages: &room
+                    .game
+                    .lock()
+                    .await
+                    .messages()
+                    .iter()
+                    .map(Into::into)
+                    .collect::<Vec<Message>>(),
+            }
+            .render()?;
+            Ok(content)
+        },
+        "could not render room",
+    )
+    .await
 }
 
 pub async fn join_room(
@@ -111,7 +114,7 @@ async fn handle_socket(
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
             let msg = ws::Message::Text(
-                render_or_else(&Message::from(&msg), "Couldn't render message").into(),
+                render_or_else(&Message::from(&msg), "could not render message").into(),
             );
 
             if sender.send(msg).await.is_err() {

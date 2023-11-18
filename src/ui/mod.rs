@@ -1,6 +1,5 @@
 use askama::Template;
 use axum::{
-    response::Html,
     routing::{get, post},
     Router,
 };
@@ -8,25 +7,15 @@ use axum::{
 mod characters;
 mod lobby;
 mod room;
+mod utils;
 
 use crate::server::MutState;
-
-/// Render a template or return an error message
-pub fn render_or_else<T: Template>(template: &T, err: &str) -> String {
-    template.render().unwrap_or_else(|_| err.to_owned())
-}
 
 #[derive(Template)]
 #[template(path = "page.html")]
 pub struct Page<'a> {
     title: &'a str,
     content: &'a str,
-}
-pub fn page(title: &str, content: &str) -> Html<String> {
-    Html(render_or_else(
-        &Page { title, content },
-        "Couldn't render page",
-    ))
 }
 
 pub fn pages_router() -> Router<MutState> {
@@ -36,8 +25,15 @@ pub fn pages_router() -> Router<MutState> {
         .route("/room/:room_id/join", get(room::join_room))
 }
 
-pub fn index() -> Html<String> {
-    page("RDND", "<div hx-get='/c/rooms' hx-trigger='load'></div>")
+pub fn index() -> axum::response::Html<String> {
+    axum::response::Html(
+        Page {
+            title: "RDND",
+            content: "<div hx-get='/c/rooms' hx-trigger='load'></div>",
+        }
+        .render()
+        .unwrap_or_else(|_| "could not render page".to_owned()),
+    )
 }
 
 pub fn components_router() -> Router<MutState> {

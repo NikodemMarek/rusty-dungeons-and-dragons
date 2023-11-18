@@ -42,13 +42,15 @@ impl<'a> From<&'a crate::game::character::Ability> for Ability<'a> {
     }
 }
 pub async fn character(State(state): State<MutState>) -> impl IntoResponse {
-    let client = async_openai::Client::new();
-    let characters = crate::game::character::Character::new(client);
-
-    super::page("RDND - character", {
-        &super::render_or_else(
-            &Into::<Character>::into(characters.await.unwrap().first().unwrap()),
-            "Couldn't render",
-        )
-    })
+    super::utils::page_or(
+        "RDND - character",
+        || async {
+            let client = async_openai::Client::new();
+            let characters = crate::game::character::Character::new(client).await?;
+            let character = characters.first().unwrap();
+            Ok(Into::<Character>::into(character).render()?)
+        },
+        "could not render",
+    )
+    .await
 }

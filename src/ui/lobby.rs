@@ -1,9 +1,12 @@
 use askama::Template;
-use axum::extract::{Form, State};
+use axum::{
+    extract::{Form, State},
+    response::IntoResponse,
+};
 
 use crate::server::MutState;
 
-use super::render_or_else;
+use super::utils::{render_or_else, response_or};
 
 #[derive(Template)]
 #[template(path = "lobby/rooms.html")]
@@ -24,7 +27,7 @@ pub async fn get_rooms(State(state): State<MutState>) -> String {
                 })
                 .collect::<Vec<Room>>(),
         },
-        "Couldn't render room list",
+        "could not render room list",
     )
 }
 
@@ -38,18 +41,23 @@ struct Room<'a> {
 pub struct NewRoom {
     pub name: String,
 }
-pub async fn post_rooms(State(state): State<MutState>, Form(new_room): Form<NewRoom>) -> String {
+pub async fn post_rooms(
+    State(state): State<MutState>,
+    Form(new_room): Form<NewRoom>,
+) -> impl IntoResponse {
     let rs = &mut state.lock().await;
-
     let room_id = rs.add_room(&new_room.name);
-    match rs.rooms.get(&room_id) {
-        Some(room) => render_or_else(
-            &Room {
+
+    response_or(
+        || async {
+            let room = rs.get_room(&room_id)?;
+            Ok(Room {
                 name: &room.name,
                 id: &room_id,
-            },
-            "Couldn't render room",
-        ),
-        _ => String::from("Couldn't add a room"),
-    }
+            }
+            .render()?)
+        },
+        "could not render room",
+    )
+    .await
 }
