@@ -4,9 +4,8 @@ use axum::{
     response::IntoResponse,
 };
 
-use crate::server::MutState;
-
 use super::utils::{render_or_else, response_or};
+use crate::{game::settings::Settings, server::MutState};
 
 #[derive(Template)]
 #[template(path = "lobby/rooms.html")]
@@ -40,13 +39,16 @@ struct Room<'a> {
 #[derive(Debug, serde::Deserialize)]
 pub struct NewRoom {
     pub name: String,
+    pub player_count: usize,
 }
 pub async fn post_rooms(
     State(state): State<MutState>,
     Form(new_room): Form<NewRoom>,
 ) -> impl IntoResponse {
     let rs = &mut state.lock().await;
-    let room_id = rs.add_room(&new_room.name);
+
+    let settings = Settings::new(new_room.player_count);
+    let room_id = rs.add_room(settings, &new_room.name);
 
     response_or(
         || async {

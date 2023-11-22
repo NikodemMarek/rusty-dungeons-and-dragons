@@ -1,0 +1,6 @@
+<div hx-ext="ws" ws-connect="/c/rooms/{{ room_id }}/ws/{{ character_id }}">
+    <div id="messages" class="flex flex-col"></div>
+    <form ws-send>
+        <input name="message">
+    </form>
+</div>

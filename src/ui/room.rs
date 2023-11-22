@@ -3,7 +3,7 @@ use askama::Template;
 use axum::{
     extract::{connect_info::ConnectInfo, ws, Path, State},
     response::IntoResponse,
-    TypedHeader,
+    Form, TypedHeader,
 };
 use eyre::Result;
 use std::net::SocketAddr;
@@ -13,7 +13,7 @@ use crate::{
     server::{self, MutState},
 };
 
-use super::utils::{page_or, render_or_else};
+use super::utils::{page_or, render_or_else, response_or};
 
 #[derive(Template)]
 #[template(path = "room/page.html")]
@@ -22,7 +22,7 @@ struct Page<'a> {
     name: &'a str,
     messages: &'a [Message<'a>],
 }
-pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> impl IntoResponse {
+pub async fn room(State(state): State<MutState>, Path(room_id): Path<usize>) -> impl IntoResponse {
     let rs = &mut state.lock().await;
 
     page_or(
@@ -49,9 +49,44 @@ pub async fn room(Path(room_id): Path<usize>, State(state): State<MutState>) -> 
     .await
 }
 
-pub async fn join_room(
-    Path(room_id): Path<usize>,
+#[derive(Template)]
+#[template(path = "room/ws.html")]
+struct Ws {
+    room_id: usize,
+    character_id: usize,
+}
+#[derive(Debug, serde::Deserialize)]
+pub struct NewPlayer {
+    pub character_id: usize,
+}
+pub async fn join(
     State(state): State<MutState>,
+    Path(room_id): Path<usize>,
+    Form(new_player): Form<NewPlayer>,
+) -> impl IntoResponse {
+    let rs = &mut state.lock().await;
+
+    response_or(
+        || async {
+            let room = rs.get_room(&room_id)?;
+
+            // TODO: Validate if character is avaliable or sth
+
+            let content = Ws {
+                room_id,
+                character_id: new_player.character_id,
+            }
+            .render()?;
+            Ok(content)
+        },
+        "could not join room",
+    )
+    .await
+}
+
+pub async fn ws(
+    State(state): State<MutState>,
+    Path((room_id, character_id)): Path<(usize, usize)>,
 
     ws: ws::WebSocketUpgrade,
     user_agent: Option<TypedHeader<headers::UserAgent>>,
@@ -72,33 +107,11 @@ pub async fn join_room(
                 String::from("Unknown browser")
             }
         );
-        let client_id = room.add_client(&agent).await;
+        let client_id = room.connect(character_id).await;
 
         ws.on_upgrade(move |socket| handle_socket(socket, room, client_id, agent))
     } else {
         ws.on_upgrade(|_| async { () })
-    }
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct RawMessage {
-    message: String,
-}
-impl TryFrom<&str> for RawMessage {
-    type Error = eyre::Error;
-    fn try_from(msg: &str) -> Result<Self> {
-        Ok(serde_json::from_str(msg)?)
-    }
-}
-impl Into<game::message::Message> for RawMessage {
-    fn into(self) -> game::message::Message {
-        game::message::Message::Generic(self.message)
-    }
-}
-impl TryFrom<String> for game::message::Message {
-    type Error = eyre::Error;
-    fn try_from(msg: String) -> Result<Self> {
-        Ok(TryInto::<RawMessage>::try_into(msg.as_str())?.into())
     }
 }
 async fn handle_socket(
@@ -139,6 +152,7 @@ async fn handle_socket(
         _ = (&mut recv_task) => send_task.abort(),
     };
 
+    room.disconnect(client_id).await;
     println!("client {agent} disconnected");
 }
 
@@ -146,6 +160,27 @@ async fn handle_socket(
 #[template(path = "room/message.html")]
 struct Message<'a> {
     content: &'a str,
+}
+#[derive(Debug, serde::Deserialize)]
+struct RawMessage {
+    message: String,
+}
+impl TryFrom<&str> for RawMessage {
+    type Error = eyre::Error;
+    fn try_from(msg: &str) -> Result<Self> {
+        Ok(serde_json::from_str(msg)?)
+    }
+}
+impl Into<game::message::Message> for RawMessage {
+    fn into(self) -> game::message::Message {
+        game::message::Message::Generic(self.message)
+    }
+}
+impl TryFrom<String> for game::message::Message {
+    type Error = eyre::Error;
+    fn try_from(msg: String) -> Result<Self> {
+        Ok(TryInto::<RawMessage>::try_into(msg.as_str())?.into())
+    }
 }
 impl<'a> From<&'a game::message::Message> for Message<'a> {
     fn from(msg: &'a game::message::Message) -> Self {

@@ -4,7 +4,7 @@ pub mod room;
 
 use eyre::Result;
 
-use crate::server::room::Room;
+use crate::{game, server::room::Room};
 
 #[derive(Debug)]
 pub struct AppState {
@@ -19,8 +19,9 @@ impl AppState {
         }
     }
 
-    pub fn add_room(&mut self, name: &str) -> usize {
-        self.rooms.insert(self.id, Arc::new(Room::new(name)));
+    pub fn add_room(&mut self, settings: game::settings::Settings, name: &str) -> usize {
+        self.rooms
+            .insert(self.id, Arc::new(Room::new(settings, name)));
         self.id += 1;
         self.id - 1
     }

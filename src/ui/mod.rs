@@ -22,7 +22,6 @@ pub fn pages_router() -> Router<MutState> {
     Router::new()
         .route("/", get(index()))
         .route("/room/:room_id", get(room::room))
-        .route("/room/:room_id/join", get(room::join_room))
 }
 
 pub fn index() -> axum::response::Html<String> {
@@ -40,5 +39,12 @@ pub fn components_router() -> Router<MutState> {
     Router::new()
         .route("/rooms", get(lobby::get_rooms))
         .route("/rooms", post(lobby::post_rooms))
+        .route(
+            "/rooms/:room_id/character/:character_id",
+            get(characters::character),
+        )
+        .route("/rooms/:room_id/characters", get(characters::characters))
+        .route("/rooms/:room_id/join", post(room::join))
+        .route("/rooms/:room_id/ws/:character_id", get(room::ws))
         .route("/characters", get(characters::character))
 }

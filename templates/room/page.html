@@ -1,13 +1,10 @@
 <h1>welcome to room {{ name }}</h1>
 
-<div hx-trigger="load" hx-get="/c/characters" hx-swap="outerHTML"></div>
+<div hx-trigger="load" hx-get="/c/rooms/{{ id }}/characters" hx-swap="outerHTML"></div>
 
-<div hx-ext="ws" ws-connect="/room/{{ id }}/join">
-    <div id="messages" class="flex flex-col"></div>
-    <form ws-send>
-        <input name="message">
-    </form>
-</div>
+<form hx-post="/c/rooms/{{ id }}/join">
+    <input name="character_id" type="number">
+</form>
 
 {% for message in messages %}
     {{ message|safe }}

@@ -11,13 +11,11 @@ use std::collections::HashMap;
 
 pub mod character;
 pub mod message;
+pub mod settings;
 
 use message::Message;
 
-#[derive(Debug)]
-pub struct Player {
-    name: String,
-}
+use self::character::{generate_characters, Character};
 
 #[derive(Debug)]
 struct Context {
@@ -31,7 +29,7 @@ impl From<Game> for Context {
         Self {
             config: String::from(""),
             players: game
-                .players
+                .characters
                 .iter()
                 .map(|p| p.1.name.to_owned())
                 .collect::<Vec<String>>(),
@@ -82,13 +80,14 @@ impl TryInto<Vec<ChatCompletionRequestMessage>> for &Context {
 
 #[derive(Debug)]
 pub struct Game {
+    settings: settings::Settings,
     client: Client<OpenAIConfig>,
     context: Context,
-    players: HashMap<usize, Player>,
+    characters: HashMap<usize, Character>,
     messages: Vec<Message>,
 }
 impl Game {
-    pub fn new() -> Self {
+    pub fn new(settings: settings::Settings) -> Self {
         let client = Client::new();
         let context = Context {
             config: String::from(""),
@@ -96,21 +95,25 @@ impl Game {
             location: String::from(""),
             story: Vec::new(),
         };
-        let players = HashMap::new();
+        let characters = HashMap::new();
         let messages = Vec::new();
 
         Self {
+            settings,
             client,
             context,
-            players,
+            characters,
             messages,
         }
     }
 
-    pub fn add_player(&mut self, name: String) -> usize {
-        let id = self.players.len();
-        self.players.insert(id, Player { name });
-        id
+    pub async fn init(&mut self) -> Result<()> {
+        let characters = generate_characters(&self.client, self.settings.player_count as u8);
+        for (i, character) in characters.await?.into_iter().enumerate() {
+            self.characters.insert(i, character);
+        }
+
+        Ok(())
     }
 
     pub fn push_msg(&mut self, msg: Message) {
@@ -143,5 +146,14 @@ impl Game {
 
     pub fn messages<'a>(&'a self) -> &'a [Message] {
         &self.messages
+    }
+
+    pub fn get_characters(&self) -> &HashMap<usize, Character> {
+        &self.characters
+    }
+    pub fn get_character(&self, character_id: &usize) -> Result<&Character> {
+        self.characters
+            .get(character_id)
+            .ok_or_else(|| eyre::eyre!("player with id {} not found", character_id))
     }
 }

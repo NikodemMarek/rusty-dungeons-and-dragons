@@ -7,7 +7,7 @@ mod game;
 mod server;
 mod ui;
 
-use crate::server::AppState;
+use crate::{game::settings::Settings, server::AppState};
 
 #[tokio::main]
 async fn main() {
@@ -25,7 +25,9 @@ async fn main() {
     let assets_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets");
 
     let state = std::sync::Arc::new(tokio::sync::Mutex::new(AppState::new()));
-    state.lock().await.add_room("test");
+    let room_id = state.lock().await.add_room(Settings::default(), "test");
+    let room = state.lock().await.get_room(&room_id).unwrap();
+    // room.game.lock().await.init().await;
 
     let app = Router::new()
         .fallback_service(ServeDir::new(assets_dir).append_index_html_on_directories(true))

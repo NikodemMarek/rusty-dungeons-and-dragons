@@ -1,5 +1,8 @@
 use askama::Template;
-use axum::{extract::State, response::IntoResponse};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+};
 
 use crate::server::MutState;
 
@@ -41,14 +44,45 @@ impl<'a> From<&'a crate::game::character::Ability> for Ability<'a> {
         }
     }
 }
-pub async fn character(State(state): State<MutState>) -> impl IntoResponse {
-    super::utils::page_or(
-        "RDND - character",
+pub async fn character(
+    State(state): State<MutState>,
+    Path((room_id, character_id)): Path<(usize, usize)>,
+) -> impl IntoResponse {
+    let rs = &mut state.lock().await;
+
+    super::utils::response_or(
         || async {
-            let client = async_openai::Client::new();
-            let characters = crate::game::character::Character::new(client).await?;
-            let character = characters.first().unwrap();
-            Ok(Into::<Character>::into(character).render()?)
+            let room = rs.get_room(&room_id)?;
+            let game = room.game.lock().await;
+
+            let character = game.get_character(&character_id)?;
+
+            let content = Into::<Character>::into(character).render()?;
+            Ok(content)
+        },
+        "could not render",
+    )
+    .await
+}
+pub async fn characters(
+    State(state): State<MutState>,
+    Path(room_id): Path<usize>,
+) -> impl IntoResponse {
+    let rs = &mut state.lock().await;
+
+    super::utils::response_or(
+        || async {
+            let room = rs.get_room(&room_id)?;
+            let game = room.game.lock().await;
+
+            let content = game
+                .get_characters()
+                .values()
+                .map(Into::<Character>::into)
+                .map(|c| c.render())
+                .collect::<Result<Vec<String>, askama::Error>>()?
+                .join("<br>");
+            Ok(content)
         },
         "could not render",
     )

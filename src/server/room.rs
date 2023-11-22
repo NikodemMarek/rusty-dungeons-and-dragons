@@ -1,7 +1,8 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-use crate::game::{message::Message, Game};
+use crate::game::{self, message::Message, Game};
 
 #[derive(Debug)]
 pub struct Room {
@@ -10,10 +11,12 @@ pub struct Room {
 
     pub tx: tokio::sync::broadcast::Sender<Message>,
     recv_task: tokio::task::JoinHandle<()>,
+
+    pub players: Mutex<HashSet<usize>>,
 }
 impl Room {
-    pub fn new(name: &str) -> Self {
-        let game = Arc::new(Mutex::new(Game::new()));
+    pub fn new(settings: game::settings::Settings, name: &str) -> Self {
+        let game = Arc::new(Mutex::new(Game::new(settings)));
         let (tx, mut rx) = tokio::sync::broadcast::channel::<Message>(10);
 
         let recv_game = game.clone();
@@ -26,16 +29,24 @@ impl Room {
             }
         });
 
+        let players = Mutex::new(HashSet::new());
+
         Self {
             name: name.to_owned(),
             game,
             tx,
             recv_task,
+            players,
         }
     }
 
-    pub async fn add_client(&self, agent: &str) -> usize {
-        self.game.lock().await.add_player(agent.to_owned())
+    pub async fn connect(&self, character_id: usize) -> usize {
+        self.players.lock().await.insert(character_id);
+        character_id
+    }
+    pub async fn disconnect(&self, client_id: usize) {
+        self.players.lock().await.remove(&client_id);
+        // self.broadcast(Message::Generic(format!("disconnected: {client_id}")));
     }
 
     pub fn broadcast(&self, msg: Message) {
